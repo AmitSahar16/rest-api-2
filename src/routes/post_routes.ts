@@ -1,10 +1,10 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   createPost,
   getPosts,
   getPostById,
   updatePost,
-} = require('../controllers/post');
+} from '../controllers/post';
 
 const router = express.Router();
 
@@ -16,4 +16,4 @@ router.post('/', createPost);
 
 router.put('/:id', updatePost);
 
-module.exports = router;
+export default router;

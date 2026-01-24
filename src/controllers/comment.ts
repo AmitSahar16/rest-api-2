@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
-const Comment = require('../models/comment');
-const Post = require('../models/post');
+import mongoose from 'mongoose';
+import Comment from '../models/comment';
+import Post from '../models/post';
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-const createComment = async (req, res) => {
+export const createComment = async (req, res) => {
   try {
     const { post } = req.body;
 
@@ -27,7 +27,7 @@ const createComment = async (req, res) => {
   }
 };
 
-const getComments = async (req, res) => {
+export const getComments = async (req, res) => {
   try {
     const { post } = req.query;
 
@@ -42,7 +42,7 @@ const getComments = async (req, res) => {
   }
 };
 
-const updateComment = async (req, res) => {
+export const updateComment = async (req, res) => {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
@@ -66,7 +66,7 @@ const updateComment = async (req, res) => {
   }
 };
 
-const deleteComment = async (req, res) => {
+export const deleteComment = async (req, res) => {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
@@ -84,11 +84,4 @@ const deleteComment = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-};
-
-module.exports = {
-  createComment,
-  getComments,
-  updateComment,
-  deleteComment,
 };
