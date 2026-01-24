@@ -1,10 +1,10 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   createComment,
   getComments,
   updateComment,
   deleteComment,
-} = require('../controllers/comment');
+} from '../controllers/comment';
 
 const router = express.Router();
 
@@ -16,4 +16,4 @@ router.put('/:id', updateComment);
 
 router.delete('/:id', deleteComment);
 
-module.exports = router;
+export default router;

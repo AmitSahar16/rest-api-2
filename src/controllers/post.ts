@@ -1,9 +1,9 @@
-const mongoose = require('mongoose');
-const Post = require('../models/post');
+import mongoose from 'mongoose';
+import Post from '../models/post';
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-const createPost = async (req, res) => {
+export const createPost = async (req, res) => {
   try {
     const post = await Post.create(req.body);
 
@@ -13,7 +13,7 @@ const createPost = async (req, res) => {
   }
 };
 
-const getPosts = async (req, res) => {
+export const getPosts = async (req, res) => {
   try {
     const sender = req.query.sender;
     const posts = sender ? await Post.find({ sender }) : await Post.find();
@@ -24,7 +24,7 @@ const getPosts = async (req, res) => {
   }
 };
 
-const getPostById = async (req, res) => {
+export const getPostById = async (req, res) => {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
@@ -44,7 +44,7 @@ const getPostById = async (req, res) => {
   }
 };
 
-const updatePost = async (req, res) => {
+export const updatePost = async (req, res) => {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
@@ -66,11 +66,4 @@ const updatePost = async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
-};
-
-module.exports = {
-  createPost,
-  getPosts,
-  getPostById,
-  updatePost,
 };
