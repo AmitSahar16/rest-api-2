@@ -1,17 +1,19 @@
-import { Schema, model } from 'mongoose';
+import mongoose from 'mongoose';
+import { IPost } from '../types';
 
-const postSchema = new Schema(
+const postSchema = new mongoose.Schema<IPost>(
   {
     message: {
-       type: String, 
-       required: true, 
+      type: String,
+      required: false,
     },
-    sender: {
-       type: String, 
-       required: true,
+    user: {
+      type: String,
+      required: true,
+      ref: 'User',
     },
   },
+  { timestamps: true }
 );
 
-export default model('Post', postSchema, 'posts');
-
+export default mongoose.model<IPost>('Post', postSchema, 'posts');
