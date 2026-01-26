@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema<IUser>({
     type: String,
     required: true,
   },
+  refreshTokens: {
+    type: [String],
+    required: false,
+  },
 });
 
 export default mongoose.model<IUser>('User', userSchema, 'users');
