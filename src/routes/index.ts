@@ -1,10 +1,10 @@
 import express from 'express';
-import postRoutes from './post_routes';
-import commentRoutes from './comment_routes';
+import postRoutes from './posts_route';
+import commentRoutes from './comments_route';
 
 const router = express.Router();
 
-router.use('/post', postRoutes);
-router.use('/comment', commentRoutes);
+router.use('/posts', postRoutes);
+router.use('/comments', commentRoutes);
 
 export default router;
