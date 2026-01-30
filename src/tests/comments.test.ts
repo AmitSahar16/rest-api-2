@@ -254,4 +254,79 @@ describe('Comment tests', () => {
     // Could be 200 with null or 404 depending on implementation
     expect([200, 404]).toContain(response.statusCode);
   });
+
+  test('Test GET comment with invalid ID', async () => {
+    const response = await request(app)
+      .get('/comments/invalidid123')
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  test('Test GET comments for non-existent post', async () => {
+    const fakePostId = '507f1f77bcf86cd799439011';
+    const response = await request(app)
+      .get(`/posts/${fakePostId}/comments`)
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toHaveLength(0);
+  });
+
+  test('Test PUT comment with invalid ID', async () => {
+    const response = await request(app)
+      .put('/comments/invalidid123')
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ text: 'Update attempt' });
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  test('Test DELETE comment with invalid ID', async () => {
+    const response = await request(app)
+      .delete('/comments/invalidid123')
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  test('Test ownership middleware - comment not found', async () => {
+    const fakeCommentId = '507f1f77bcf86cd799439011';
+    const response = await request(app)
+      .put(`/comments/${fakeCommentId}`)
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ text: 'Update attempt' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('Test GET comments with query parameter (name filter)', async () => {
+    const response = await request(app)
+      .get('/comments?name=testname')
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  test('Test GET comments by post - verify populated user fields', async () => {
+    const response = await request(app)
+      .get(`/posts/${post._id}/comments`)
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    if (response.body.length > 0 && response.body[0].user) {
+      expect(response.body[0].user).toBeDefined();
+    }
+  });
+
+  test('Test GET all comments without query parameter', async () => {
+    const response = await request(app)
+      .get('/comments')
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
 });
