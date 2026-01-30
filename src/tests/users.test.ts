@@ -88,4 +88,105 @@ describe('User tests', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body.username).toBe(updatedUser.username);
   });
+
+  test('Test PUT /users without auth token', async () => {
+    const response = await request(app)
+      .put('/users')
+      .send({
+        username: 'NewUsername'
+      });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test PUT /users with invalid token', async () => {
+    const response = await request(app)
+      .put('/users')
+      .set('Authorization', 'Bearer invalidtoken123')
+      .send({
+        username: 'NewUsername'
+      });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test GET /users/me with expired token', async () => {
+    // This test requires token to be expired
+    const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.expired';
+    const response = await request(app)
+      .get('/users/me')
+      .set('Authorization', 'Bearer ' + expiredToken);
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test PUT /users partial update', async () => {
+    const response = await request(app)
+      .put('/users')
+      .send({
+        username: 'PartialUpdate'
+      })
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.username).toBe('PartialUpdate');
+  });
+
+  test('Test GET /users/me with valid data', async () => {
+    const response = await request(app)
+      .get('/users/me')
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body._id).toBeDefined();
+    expect(response.body.email).toBe(user.email);
+  });
+
+  test('Test PUT /users - update multiple fields', async () => {
+    const response = await request(app)
+      .put('/users')
+      .send({
+        username: 'MultiUpdate',
+        email: user.email
+      })
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.username).toBe('MultiUpdate');
+  });
+
+  test('Test GET /users - get all users', async () => {
+    const response = await request(app).get('/users');
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBeGreaterThan(0);
+  });
+
+  test('Test GET /users with query parameter', async () => {
+    const response = await request(app).get('/users?name=testname');
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  test('Test DELETE /users/:id', async () => {
+    // Create a user to delete
+    const testUser = {
+      email: 'delete@test.com',
+      password: '123456',
+      username: 'deleteuser'
+    };
+
+    await User.deleteMany({ email: testUser.email });
+    const createResponse = await request(app)
+      .post('/auth/register')
+      .send(testUser);
+
+    const userId = createResponse.body._id;
+
+    const response = await request(app).delete(`/users/${userId}`);
+
+    expect(response.statusCode).toBe(200);
+  });
 });
