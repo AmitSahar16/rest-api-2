@@ -39,3 +39,4 @@ export const getRefreshTokenFromHeader = (headers) => {
 
   return refreshToken;
 };
+
