@@ -104,4 +104,169 @@ describe('post tests', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body._id).toBe(post._id);
   });
+
+  test('Test POST post without auth token', async () => {
+    const response = await request(app)
+      .post('/posts')
+      .send({
+        message: 'Unauthorized post'
+      });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test PUT post without auth token', async () => {
+    // Create a new post first
+    const createResponse = await request(app)
+      .post('/posts')
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ message: 'Test post for update' });
+
+    const postId = createResponse.body._id;
+
+    const response = await request(app)
+      .put(`/posts/${postId}`)
+      .send({ message: 'Updated without auth' });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test("Test PUT someone else's post", async () => {
+    // Register and login as a second user
+    const user2 = {
+      email: 'user2@test.com',
+      password: '123456',
+      username: 'user2'
+    };
+
+    await User.deleteMany({ email: user2.email });
+    await request(app).post('/auth/register').send(user2);
+    const loginResponse = await request(app).post('/auth/login').send({
+      identifier: user2.email,
+      password: user2.password
+    });
+    const accessToken2 = loginResponse.body.accessToken;
+
+    // Create a post with first user
+    const createResponse = await request(app)
+      .post('/posts')
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ message: 'First user post' });
+
+    const postId = createResponse.body._id;
+
+    // Try to update with second user
+    const response = await request(app)
+      .put(`/posts/${postId}`)
+      .set('Authorization', 'Bearer ' + accessToken2)
+      .send({ message: 'Trying to update' });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  test("Test DELETE someone else's post", async () => {
+    // Register and login as a second user
+    const user2 = {
+      email: 'user2delete@test.com',
+      password: '123456',
+      username: 'user2delete'
+    };
+
+    await User.deleteMany({ email: user2.email });
+    await request(app).post('/auth/register').send(user2);
+    const loginResponse = await request(app).post('/auth/login').send({
+      identifier: user2.email,
+      password: user2.password
+    });
+    const accessToken2 = loginResponse.body.accessToken;
+
+    // Create a post with first user
+    const createResponse = await request(app)
+      .post('/posts')
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ message: 'First user post for delete' });
+
+    const postId = createResponse.body._id;
+
+    // Try to delete with second user
+    const response = await request(app)
+      .delete(`/posts/${postId}`)
+      .set('Authorization', 'Bearer ' + accessToken2);
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  test('Test DELETE post without auth token', async () => {
+    // Create a new post first
+    const createResponse = await request(app)
+      .post('/posts')
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ message: 'Test post for delete without auth' });
+
+    const postId = createResponse.body._id;
+
+    const response = await request(app)
+      .delete(`/posts/${postId}`);
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test GET post with invalid ID', async () => {
+    const response = await request(app).get('/posts/invalidid123');
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  test('Test GET posts by user with filter', async () => {
+    const response = await request(app)
+      .get('/posts/user/me')
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  test('Test GET posts with query parameter (name filter)', async () => {
+    const response = await request(app)
+      .get('/posts?name=testname');
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  test('Test GET posts with populated user data', async () => {
+    // Create a post first
+    const createResponse = await request(app)
+      .post('/posts')
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ message: 'Post to check population' });
+
+    const postId = createResponse.body._id;
+
+    const response = await request(app).get(`/posts/${postId}`);
+
+    expect(response.statusCode).toBe(200);
+    if (response.body.user && typeof response.body.user === 'object') {
+      expect(response.body.user.username).toBeDefined();
+    }
+  });
+
+  test('Test PUT post - ownership check with valid ID but not found', async () => {
+    const fakePostId = '507f1f77bcf86cd799439011';
+    const response = await request(app)
+      .put(`/posts/${fakePostId}`)
+      .set('Authorization', 'Bearer ' + accessToken)
+      .send({ message: 'Update attempt' });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  test('Test DELETE post - ownership check with valid ID but not found', async () => {
+    const fakePostId = '507f1f77bcf86cd799439012';
+    const response = await request(app)
+      .delete(`/posts/${fakePostId}`)
+      .set('Authorization', 'Bearer ' + accessToken);
+
+    expect(response.statusCode).toBe(404);
+  });
 });
