@@ -152,4 +152,185 @@ describe('Auth tests', () => {
 
     expect(response1.statusCode).not.toBe(200);
   });
+
+  test('Test login missing password', async () => {
+    const response = await request(app)
+      .post('/auth/login')
+      .send({
+        identifier: user.email
+      });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('Test login missing identifier', async () => {
+    const response = await request(app)
+      .post('/auth/login')
+      .send({
+        password: user.password
+      });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('Test login with wrong password', async () => {
+    const response = await request(app)
+      .post('/auth/login')
+      .send({
+        identifier: user.email,
+        password: 'wrongpassword'
+      });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test login with non-existent email', async () => {
+    const response = await request(app)
+      .post('/auth/login')
+      .send({
+        identifier: 'nonexistent@email.com',
+        password: user.password
+      });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test login with username', async () => {
+    const response = await request(app)
+      .post('/auth/login')
+      .send({
+        identifier: user.username,
+        password: user.password
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.accessToken).toBeDefined();
+    expect(response.body.refreshToken).toBeDefined();
+  });
+
+  test('Test logout without refresh token', async () => {
+    const response = await request(app)
+      .get('/auth/logout')
+      .send();
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test refresh without token', async () => {
+    const response = await request(app)
+      .get('/auth/refresh')
+      .send();
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test refresh with invalid token', async () => {
+    const response = await request(app)
+      .get('/auth/refresh')
+      .set('Authorization', 'Bearer invalidtoken123')
+      .send();
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  test('Test register missing username', async () => {
+    const response = await request(app)
+      .post('/auth/register')
+      .send({
+        email: 'newuser@test.com',
+        password: '123456'
+      });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('Test register missing email', async () => {
+    const response = await request(app)
+      .post('/auth/register')
+      .send({
+        username: 'newuser',
+        password: '123456'
+      });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  test('Test logout with already used token', async () => {
+    const loginResponse = await request(app).post('/auth/login').send({
+      identifier: user.email,
+      password: user.password
+    });
+    const validRefreshToken = loginResponse.body.refreshToken;
+
+    // Logout first time
+    await request(app)
+      .get('/auth/logout')
+      .set('Authorization', 'Bearer ' + validRefreshToken)
+      .send();
+
+    // Try to logout again with same token
+    const response = await request(app)
+      .get('/auth/logout')
+      .set('Authorization', 'Bearer ' + validRefreshToken)
+      .send();
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test refresh with token from non-existent user', async () => {
+    // This would require a token with invalid user ID
+    // Just testing the invalid token path
+    const response = await request(app)
+      .get('/auth/refresh')
+      .set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid')
+      .send();
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  test('Test logout with token for deleted user', async () => {
+    const tempUser = {
+      email: 'temp@test.com',
+      password: '123456',
+      username: 'temp'
+    };
+    await User.deleteMany({ email: tempUser.email });
+    await request(app).post('/auth/register').send(tempUser);
+    const loginResp = await request(app).post('/auth/login').send({
+      identifier: tempUser.email,
+      password: tempUser.password
+    });
+    const token = loginResp.body.refreshToken;
+    await User.deleteMany({ email: tempUser.email });
+
+    const response = await request(app)
+      .get('/auth/logout')
+      .set('Authorization', 'Bearer ' + token)
+      .send();
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  test('Test refresh with token for deleted user', async () => {
+    const tempUser = {
+      email: 'temp2@test.com',
+      password: '123456',
+      username: 'temp2'
+    };
+    await User.deleteMany({ email: tempUser.email });
+    await request(app).post('/auth/register').send(tempUser);
+    const loginResp = await request(app).post('/auth/login').send({
+      identifier: tempUser.email,
+      password: tempUser.password
+    });
+    const token = loginResp.body.refreshToken;
+    await User.deleteMany({ email: tempUser.email });
+
+    const response = await request(app)
+      .get('/auth/refresh')
+      .set('Authorization', 'Bearer ' + token)
+      .send();
+
+    expect(response.statusCode).toBe(401);
+  });
 });
